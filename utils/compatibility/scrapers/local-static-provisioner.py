@@ -7,6 +7,7 @@ from utils import (
     fetch_page,
     get_chart_versions,
     print_error,
+    read_yaml,
     update_compatibility_info,
     validate_semver,
 )
@@ -75,7 +76,17 @@ def parse_compatibility_matrix(content, latest_kube):
     return rows
 
 
-def build_rows(compatibility_matrix, chart_versions):
+def load_existing_versions():
+    data = read_yaml(f"../../static/compatibilities/{APP_NAME}.yaml") or {}
+    return {
+        str(row.get("version")): row
+        for row in data.get("versions", [])
+        if row.get("version")
+    }
+
+
+def build_rows(compatibility_matrix, chart_versions, existing_versions=None):
+    existing_versions = existing_versions or {}
     rows = []
     for app_version, kube_versions in compatibility_matrix.items():
         version_info = OrderedDict(
@@ -88,9 +99,19 @@ def build_rows(compatibility_matrix, chart_versions):
         )
 
         chart_version = chart_versions.get(app_version)
+        existing = existing_versions.get(app_version, {})
         if chart_version:
             version_info["chart_version"] = chart_version
-            version_info["images"] = []
+            version_info["images"] = (
+                existing.get("images", [])
+                if existing.get("chart_version") == chart_version
+                else []
+            )
+        elif existing.get("chart_version"):
+            # A partially unavailable Helm index should not erase chart metadata
+            # that was already verified and checked in for this app release.
+            version_info["chart_version"] = existing["chart_version"]
+            version_info["images"] = existing.get("images", [])
 
         rows.append(version_info)
 
@@ -116,7 +137,11 @@ def scrape():
         print_error("No local-static-provisioner chart versions found.")
         return
 
-    rows = build_rows(compatibility_matrix, chart_versions)
+    rows = build_rows(
+        compatibility_matrix,
+        chart_versions,
+        load_existing_versions(),
+    )
     if not rows:
         print_error("No local-static-provisioner compatibility rows generated.")
         return

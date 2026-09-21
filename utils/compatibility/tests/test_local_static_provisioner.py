@@ -70,11 +70,55 @@ class LocalStaticProvisionerScraperTest(unittest.TestCase):
                 "2.7.0": ["1.21", "1.22"],
             },
             {"2.9.0": "2.9.0", "2.8.0": "2.8.0"},
+            {},
         )
 
         self.assertEqual(rows[0]["chart_version"], "2.9.0")
         self.assertEqual(rows[1]["chart_version"], "2.8.0")
         self.assertNotIn("chart_version", rows[2])
+
+    def test_build_rows_preserves_verified_chart_metadata_on_partial_index(self):
+        rows = local_static_provisioner.build_rows(
+            {
+                "2.9.0": ["1.21", "1.22"],
+                "2.8.0": ["1.21", "1.22"],
+            },
+            {"2.9.0": "2.9.0"},
+            {
+                "2.9.0": {
+                    "chart_version": "2.9.0",
+                    "images": ["registry.example/provisioner:v2.9.0"],
+                },
+                "2.8.0": {
+                    "chart_version": "2.8.0",
+                    "images": ["registry.example/provisioner:v2.8.0"],
+                },
+            },
+        )
+
+        self.assertEqual(rows[0]["chart_version"], "2.9.0")
+        self.assertEqual(
+            rows[0]["images"], ["registry.example/provisioner:v2.9.0"]
+        )
+        self.assertEqual(rows[1]["chart_version"], "2.8.0")
+        self.assertEqual(
+            rows[1]["images"], ["registry.example/provisioner:v2.8.0"]
+        )
+
+    def test_build_rows_does_not_reuse_images_for_changed_chart_version(self):
+        rows = local_static_provisioner.build_rows(
+            {"2.9.0": ["1.21", "1.22"]},
+            {"2.9.0": "2.9.1"},
+            {
+                "2.9.0": {
+                    "chart_version": "2.9.0",
+                    "images": ["registry.example/provisioner:v2.9.0"],
+                }
+            },
+        )
+
+        self.assertEqual(rows[0]["chart_version"], "2.9.1")
+        self.assertEqual(rows[0]["images"], [])
 
     def test_scrape_writes_documented_rows_and_exact_chart_matches(self):
         with patch.object(
@@ -86,6 +130,19 @@ class LocalStaticProvisionerScraperTest(unittest.TestCase):
             "get_chart_versions",
             return_value={"2.9.0": "2.9.0", "2.8.0": "2.8.0"},
         ), patch.object(
+            local_static_provisioner,
+            "load_existing_versions",
+            return_value={
+                "2.9.0": {
+                    "chart_version": "2.9.0",
+                    "images": ["registry.example/provisioner:v2.9.0"],
+                },
+                "2.8.0": {
+                    "chart_version": "2.8.0",
+                    "images": ["registry.example/provisioner:v2.8.0"],
+                },
+            },
+        ), patch.object(
             local_static_provisioner, "update_compatibility_info"
         ) as update:
             local_static_provisioner.scrape()
@@ -94,6 +151,9 @@ class LocalStaticProvisionerScraperTest(unittest.TestCase):
         rows = update.call_args.args[1]
         self.assertEqual([row["version"] for row in rows], ["2.9.0", "2.8.0", "2.7.0"])
         self.assertEqual(rows[0]["kube"], ["1.21", "1.22", "1.23"])
+        self.assertEqual(
+            rows[0]["images"], ["registry.example/provisioner:v2.9.0"]
+        )
         self.assertNotIn("chart_version", rows[2])
 
     def test_scrape_fails_closed_when_matrix_is_missing(self):
