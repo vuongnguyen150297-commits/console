@@ -1,0 +1,24 @@
+icon: https://avatars.githubusercontent.com/u/36015203?s=200&v=4
+git_url: https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner
+release_url: https://github.com/kubernetes-sigs/sig-storage-local-static-provisioner/releases/tag/v{vsn}
+helm_repository_url: https://kubernetes-sigs.github.io/sig-storage-local-static-provisioner
+versions:
+- version: 2.9.0
+  kube: ['1.36', '1.35', '1.34', '1.33', '1.32', '1.31', '1.30', '1.29', '1.28', '1.27',
+    '1.26', '1.25', '1.24', '1.23', '1.22', '1.21']
+  requirements: []
+  incompatibilities: []
+  chart_version: 2.9.0
+  images: ['registry.k8s.io/sig-storage/local-volume-provisioner:v2.9.0']
+- version: 2.8.0
+  kube: ['1.36', '1.35', '1.34', '1.33', '1.32', '1.31', '1.30', '1.29', '1.28', '1.27',
+    '1.26', '1.25', '1.24', '1.23', '1.22', '1.21']
+  requirements: []
+  incompatibilities: []
+  chart_version: 2.8.0
+  images: ['registry.k8s.io/sig-storage/local-volume-provisioner:v2.8.0']
+- version: 2.7.0
+  kube: ['1.36', '1.35', '1.34', '1.33', '1.32', '1.31', '1.30', '1.29', '1.28', '1.27',
+    '1.26', '1.25', '1.24', '1.23', '1.22', '1.21']
+  requirements: []
+  incompatibilities: []
