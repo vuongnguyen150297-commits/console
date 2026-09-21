@@ -110,6 +110,22 @@ class LocalStaticProvisionerScraperTest(unittest.TestCase):
 
         update.assert_not_called()
 
+    def test_scrape_fails_closed_when_chart_index_is_unavailable(self):
+        with patch.object(
+            local_static_provisioner, "fetch_page", return_value=MATRIX
+        ), patch.object(
+            local_static_provisioner, "current_kube_version", return_value="1.23"
+        ), patch.object(
+            local_static_provisioner, "get_chart_versions", return_value={}
+        ), patch.object(
+            local_static_provisioner, "print_error"
+        ), patch.object(
+            local_static_provisioner, "update_compatibility_info"
+        ) as update:
+            local_static_provisioner.scrape()
+
+        update.assert_not_called()
+
     def test_checked_in_table_matches_documented_rows_and_aggregate(self):
         root = COMPATIBILITY_DIR.parents[1]
         addon = yaml.safe_load(

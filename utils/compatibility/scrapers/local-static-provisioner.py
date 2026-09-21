@@ -112,6 +112,10 @@ def scrape():
         return
 
     chart_versions = get_chart_versions(APP_NAME)
+    if not chart_versions:
+        print_error("No local-static-provisioner chart versions found.")
+        return
+
     rows = build_rows(compatibility_matrix, chart_versions)
     if not rows:
         print_error("No local-static-provisioner compatibility rows generated.")
